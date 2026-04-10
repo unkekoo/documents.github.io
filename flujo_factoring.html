@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flujo Operativo — Factoring</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1e40af;
+      --primary-light: #3b82f6;
+      --primary-bg: #eff6ff;
+      --sidebar-bg: #1e293b;
+      --sidebar-text: #cbd5e1;
+      --sidebar-active: #3b82f6;
+      --sidebar-hover: #334155;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --comercial: #0369a1;
+      --comercial-bg: #e0f2fe;
+      --riesgo: #7c3aed;
+      --riesgo-bg: #ede9fe;
+      --operaciones: #065f46;
+      --operaciones-bg: #d1fae5;
+      --warning-bg: #fef3c7;
+      --warning-border: #f59e0b;
+      --danger-bg: #fee2e2;
+      --danger-border: #ef4444;
+      --success-bg: #d1fae5;
+      --success-border: #10b981;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: 270px;
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid #334155;
+    }
+    .sidebar-header .badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--sidebar-active);
+      margin-bottom: 6px;
+    }
+    .sidebar-header h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f1f5f9;
+      line-height: 1.3;
+    }
+    .sidebar-header p {
+      font-size: 12px;
+      color: var(--sidebar-text);
+      margin-top: 4px;
+    }
+
+    .sidebar-section-label {
+      padding: 14px 20px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: #475569;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      cursor: pointer;
+      color: var(--sidebar-text);
+      font-size: 13px;
+      transition: background .15s, color .15s;
+      border-left: 3px solid transparent;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--sidebar-hover); color: #f1f5f9; }
+    .nav-item.active {
+      background: #1e3a5f;
+      color: #f1f5f9;
+      border-left-color: var(--sidebar-active);
+      font-weight: 600;
+    }
+    .nav-item .icon { font-size: 16px; flex-shrink: 0; }
+
+    /* ── MAIN ── */
+    #main {
+      margin-left: 270px;
+      flex: 1;
+      padding: 0;
+    }
+
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+    .topbar .breadcrumb { font-size: 12px; color: var(--text-muted); }
+
+    .section-page { display: none; padding: 36px 40px; }
+    .section-page.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      width: 4px; height: 18px;
+      background: var(--primary-light);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    h3 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    p { font-size: 14px; line-height: 1.7; color: var(--text-muted); margin-bottom: 10px; }
+    p:last-child { margin-bottom: 0; }
+
+    /* ── OBJECTIVE LIST ── */
+    .obj-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .obj-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--primary-bg);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .obj-list li .num {
+      background: var(--primary);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── ACTOR BADGES ── */
+    .actor-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .actor-comercial { background: var(--comercial-bg); color: var(--comercial); }
+    .actor-riesgo    { background: var(--riesgo-bg);    color: var(--riesgo); }
+    .actor-operaciones { background: var(--operaciones-bg); color: var(--operaciones); }
+
+    /* ── USER STORY ── */
+    .story-card {
+      border-left: 4px solid var(--primary-light);
+      background: var(--primary-bg);
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .story-card .story-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .story-card p { color: var(--text); font-size: 14px; margin: 0; }
+
+    .criteria-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    .criteria-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13.5px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .criteria-list li::before {
+      content: '✓';
+      color: #10b981;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+
+    /* ── PROCESS TABLE ── */
+    .proc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .proc-table thead th {
+      background: var(--primary);
+      color: #fff;
+      padding: 11px 14px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+    .proc-table thead th:first-child { border-radius: 8px 0 0 0; }
+    .proc-table thead th:last-child  { border-radius: 0 8px 0 0; }
+    .proc-table tbody tr:nth-child(even) td { background: #f8fafc; }
+    .proc-table tbody tr:hover td { background: var(--primary-bg); }
+    .proc-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .proc-table td:first-child { font-weight: 600; color: var(--primary); white-space: nowrap; }
+    .step-tag {
+      display: inline-block;
+      background: var(--primary-bg);
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .task-list-inline { padding-left: 16px; color: var(--text-muted); }
+    .task-list-inline li { margin-bottom: 3px; }
+
+    /* ── EDGE CASES ── */
+    .edge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .edge-grid { grid-template-columns: 1fr; } }
+
+    .edge-card {
+      border-radius: 10px;
+      padding: 16px 18px;
+      border-left: 4px solid;
+    }
+    .edge-card.warning { background: var(--warning-bg); border-color: var(--warning-border); }
+    .edge-card.danger  { background: var(--danger-bg);  border-color: var(--danger-border); }
+    .edge-card.success { background: var(--success-bg); border-color: var(--success-border); }
+    .edge-card.info    { background: var(--primary-bg); border-color: var(--primary-light); }
+
+    .edge-card .edge-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .edge-card p { font-size: 13px; line-height: 1.55; color: var(--text); margin: 0; }
+
+    /* ── ASSUMPTIONS ── */
+    .assumption-grid { display: flex; flex-direction: column; gap: 10px; }
+    .assumption-item {
+      display: flex;
+      gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 13px 16px;
+      align-items: flex-start;
+    }
+    .assumption-item .a-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .assumption-item .a-text { font-size: 14px; color: var(--text); line-height: 1.5; }
+    .assumption-item .a-area { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      #sidebar { width: 220px; }
+      #main { margin-left: 220px; }
+      .section-page { padding: 24px 20px; }
+      .topbar { padding: 14px 20px; }
+      .edge-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════ SIDEBAR ════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="badge">Motor de Factoring</div>
+    <h1>Flujo Operativo</h1>
+    <p>Comercial → Riesgo → Operaciones</p>
+  </div>
+
+  <div class="sidebar-section-label">Documentación</div>
+  <a class="nav-item active" data-section="objetivo" onclick="showSection('objetivo',this)">
+    <span class="icon">🎯</span> Objetivo Principal
+  </a>
+  <a class="nav-item" data-section="objetivos-esp" onclick="showSection('objetivos-esp',this)">
+    <span class="icon">📋</span> Objetivos Específicos
+  </a>
+  <a class="nav-item" data-section="historia" onclick="showSection('historia',this)">
+    <span class="icon">👤</span> Historias de Usuario
+  </a>
+
+  <div class="sidebar-section-label">Proceso</div>
+  <a class="nav-item" data-section="diagrama" onclick="showSection('diagrama',this)">
+    <span class="icon">🔀</span> Diagrama de Proceso
+  </a>
+  <a class="nav-item" data-section="tabla" onclick="showSection('tabla',this)">
+    <span class="icon">📊</span> Tabla del Proceso
+  </a>
+
+  <div class="sidebar-section-label">Análisis</div>
+  <a class="nav-item" data-section="bordes" onclick="showSection('bordes',this)">
+    <span class="icon">⚠️</span> Casos de Borde
+  </a>
+  <a class="nav-item" data-section="supuestos" onclick="showSection('supuestos',this)">
+    <span class="icon">💡</span> Supuestos
+  </a>
+</nav>
+
+<!-- ════════════ MAIN ════════════ -->
+<main id="main">
+  <div class="topbar">
+    <span class="breadcrumb">Factoring /</span>
+    <h2 id="topbar-title">Objetivo Principal</h2>
+  </div>
+
+  <!-- ── 1. OBJETIVO PRINCIPAL ── -->
+  <section id="sec-objetivo" class="section-page active">
+    <div class="card">
+      <div class="card-title">Objetivo Principal</div>
+      <h3>Flujo Operativo de Factoring</h3>
+      <p>
+        Gestionar de forma integral y estandarizada el proceso de factoring, desde el ingreso de la operación por el
+        Área Comercial hasta la simulación y cierre por el Área de Operaciones, asegurando el análisis de riesgo
+        crediticio, la ratificación de facturas, la validación documental y el cumplimiento regulatorio en cada etapa.
+      </p>
+      <p>
+        El flujo contempla la participación coordinada de tres áreas: <strong>Comercial</strong>,
+        <strong>Riesgo</strong> y <strong>Operaciones</strong>, y establece los puntos de control, las responsabilidades
+        y los criterios de decisión para garantizar operaciones seguras, trazables y dentro de los límites
+        autorizados.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Áreas Involucradas</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
+        <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:18px;">
+          <span class="actor-badge actor-comercial">💼 Área Comercial</span>
+          <p style="margin-top:10px;font-size:13px;">Ingresa la operación, configura condiciones, sube facturas y coordina el envío a Riesgo y el proceso de cesión.</p>
+        </div>
+        <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:18px;">
+          <span class="actor-badge actor-riesgo">🔍 Área de Riesgo</span>
+          <p style="margin-top:10px;font-size:13px;">Evalúa la solvencia del cliente y deudores, verifica documentación y otorga el VB Posterior para el financiamiento.</p>
+        </div>
+        <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:10px;padding:18px;">
+          <span class="actor-badge actor-operaciones">⚙️ Área de Operaciones</span>
+          <p style="margin-top:10px;font-size:13px;">Verifica la cesión, contratos, KYC y condiciones comerciales; ejecuta la simulación y cierra la operación.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. OBJETIVOS ESPECÍFICOS ── -->
+  <section id="sec-objetivos-esp" class="section-page">
+    <div class="card">
+      <div class="card-title">Objetivos Específicos</div>
+      <ul class="obj-list">
+        <li>
+          <span class="num">1</span>
+          <div>
+            <strong>Registrar la operación en Core 2:</strong> Permitir al Área Comercial ingresar todos los datos
+            del cliente, tipo de producto, porcentaje, monto a financiar, tipo de pago y documentos de respaldo
+            (facturas en PDF) de manera completa y estructurada.
+          </div>
+        </li>
+        <li>
+          <span class="num">2</span>
+          <div>
+            <strong>Gestionar condiciones comerciales:</strong> Asegurar que las condiciones comerciales (tasa,
+            tipo de operación) sean revisadas y, si es necesario, ajustadas mediante el módulo de Pricing con
+            aprobación del Zonal RM antes del envío a Riesgo.
+          </div>
+        </li>
+        <li>
+          <span class="num">3</span>
+          <div>
+            <strong>Evaluar el riesgo crediticio:</strong> Analizar la morosidad, deuda en CMF/DICOM,
+            cumplimiento tributario en TGR y concentración de deuda, determinando el nivel de comité requerido
+            (R4, R2 o D+K) según el monto solicitado versus el Acta de Riesgo.
+          </div>
+        </li>
+        <li>
+          <span class="num">4</span>
+          <div>
+            <strong>Controlar el proceso de ratificación y VB Posterior:</strong> Garantizar que las facturas
+            sean ratificadas por los deudores (si aplica) y que Riesgo otorgue el VB Posterior verificando
+            ausencia de morosidad, monto dentro de línea aprobada y mitigantes comerciales.
+          </div>
+        </li>
+        <li>
+          <span class="num">5</span>
+          <div>
+            <strong>Verificar documentación legal y de cumplimiento:</strong> Confirmar el estado de la cesión
+            en SII (protocolo), el AVAL, el acta del comité, el informe legal en Fisban y la vigencia del KYC
+            (formularios 84 y 85).
+          </div>
+        </li>
+        <li>
+          <span class="num">6</span>
+          <div>
+            <strong>Ejecutar la simulación y cierre de la operación:</strong> Realizar la simulación final en
+            el sistema, registrando todos los antecedentes y observaciones requeridos (mínimo 7 comentarios),
+            para concluir el proceso de factoring de forma controlada.
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── 3. HISTORIA DE USUARIO ── -->
+  <section id="sec-historia" class="section-page">
+
+    <div class="card">
+      <div class="card-title">Historia de Sistema — Área Comercial</div>
+      <div class="story-card">
+        <div class="story-label">Historia US-01</div>
+        <p><strong>Como</strong> ejecutivo del Área Comercial, <strong>quiero</strong> ingresar una operación de
+        factoring en Core 2 con todos sus documentos y condiciones, <strong>para que</strong> pueda ser evaluada
+        por el Área de Riesgo y posteriormente cursada por Operaciones.</p>
+      </div>
+      <p style="font-weight:600;font-size:13px;margin-bottom:8px;">Criterios de aceptación:</p>
+      <ul class="criteria-list">
+        <li>Se puede ingresar cliente, tipo de producto, porcentaje y tipo de operación (normal u otra).</li>
+        <li>Se puede registrar el valor de cuadratura, indicar garantía y seleccionar tipo de pago.</li>
+        <li>Se puede subir facturas en PDF; si el cliente no las sube por portal, se permite ingreso manual (RUT, monto, vigencia).</li>
+        <li>El sistema entrega las Condiciones Comerciales (CC) al enviar a Riesgo, incluyendo tasa asignada.</li>
+        <li>Si las condiciones no son aceptadas, se habilita el módulo de Pricing para ingresar tasa diferente.</li>
+        <li>La tasa alternativa requiere aprobación del Zonal RM antes de proceder.</li>
+        <li>El expediente se envía a Riesgo con la acción "Enviar a Aprobación".</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Historia de Sistema — Área de Riesgo</div>
+      <div class="story-card">
+        <div class="story-label">Historia US-02</div>
+        <p><strong>Como</strong> analista del Área de Riesgo, <strong>quiero</strong> evaluar el expediente del
+        cliente financiero, crediticio y documentalmente, <strong>para que</strong> pueda determinar si la
+        operación puede ser aprobada y en qué nivel de comité.</p>
+      </div>
+      <p style="font-weight:600;font-size:13px;margin-bottom:8px;">Criterios de aceptación:</p>
+      <ul class="criteria-list">
+        <li>Se verifica morosidad del cliente (vigencia, antigüedad y estado de pago).</li>
+        <li>Se revisa deuda en CMF, DICOM y alertas relevantes.</li>
+        <li>Se verifica cumplimiento tributario en TGR.</li>
+        <li>Se analiza concentración de deuda de los deudores versus el acta.</li>
+        <li>El sistema permite determinar nivel de comité: R4 (monto dentro del acta), R2 (hasta +20%), D+K (mayor a +20%).</li>
+        <li>Se emite el VB Posterior verificando facturas, ausencia de morosidad, monto en línea y mitigantes.</li>
+        <li>Al otorgar el VB Posterior, se notifica al área de Ratificación y se envían datos de cesión.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Historia de Sistema — Área de Operaciones</div>
+      <div class="story-card">
+        <div class="story-label">Historia US-03</div>
+        <p><strong>Como</strong> operador del Área de Operaciones, <strong>quiero</strong> verificar toda la
+        documentación legal, contratos y condiciones comerciales del expediente, <strong>para que</strong> pueda
+        ejecutar la simulación y cerrar la operación de factoring con total conformidad.</p>
+      </div>
+      <p style="font-weight:600;font-size:13px;margin-bottom:8px;">Criterios de aceptación:</p>
+      <ul class="criteria-list">
+        <li>Se puede revisar fecha, cuenta, observaciones y estado de Ratificación del expediente.</li>
+        <li>Se verifica el estado del PROTOCOLO de cesión en SII.</li>
+        <li>Se confirma que el RUT del AVAL coincide con el acta del comité.</li>
+        <li>Se revisa el informe legal en Fisban (factura y mitigantes).</li>
+        <li>Se verifica vigencia del KYC (formularios 84 y 85) y que el Contrato de Factoring Nacional esté firmado.</li>
+        <li>La fecha del contrato de cesión o carta guía corresponde al día de la operación.</li>
+        <li>El monto del contrato de cesión coincide exactamente con el registrado en Fisban.</li>
+        <li>Se registran mínimo 7 comentarios en el sistema antes de enviar a simulación.</li>
+      </ul>
+    </div>
+
+  </section>
+
+  <!-- ── 4. DIAGRAMA ── -->
+  <section id="sec-diagrama" class="section-page">
+    <div class="card">
+      <div class="card-title">Diagrama de Flujo — Proceso Completo</div>
+      <p>Vista completa del proceso de factoring a través de las tres áreas. Los colores indican el área responsable de cada paso.</p>
+    </div>
+
+    <!-- SWIM LANE DIAGRAM -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;">
+
+      <!-- Legend -->
+      <div style="display:flex;gap:20px;padding:14px 20px;border-bottom:1px solid var(--border);background:#f8fafc;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;">
+          <span style="width:14px;height:14px;border-radius:3px;background:#0369a1;display:inline-block;"></span> Área Comercial
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;">
+          <span style="width:14px;height:14px;border-radius:3px;background:#7c3aed;display:inline-block;"></span> Área de Riesgo
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;">
+          <span style="width:14px;height:14px;border-radius:3px;background:#065f46;display:inline-block;"></span> Área de Operaciones
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;">
+          <span style="width:14px;height:14px;border-radius:3px;background:#b45309;display:inline-block;"></span> Decisión
+        </div>
+      </div>
+
+      <div style="padding:28px 24px;">
+
+        <!-- START -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:6px;">
+          <div style="background:#1e40af;color:#fff;border-radius:24px;padding:8px 22px;font-size:13px;font-weight:700;">🏁 Inicio de Operación</div>
+          <div style="width:2px;height:18px;background:#94a3b8;"></div>
+        </div>
+
+        <!-- COMERCIAL block -->
+        <div style="border:2px solid #0369a1;border-radius:10px;background:#e0f2fe;padding:16px;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#0369a1;margin-bottom:12px;">💼 Área Comercial</div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div style="background:#fff;border:2px solid #0369a1;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;color:#0c4a6e;text-align:center;min-width:130px;">
+              <div style="font-size:10px;color:#0369a1;margin-bottom:2px;">PASO 1</div>
+              Ingreso de la Operación en Core 2
+            </div>
+            <div style="font-size:18px;color:#94a3b8;">→</div>
+            <div style="background:#fff;border:2px solid #0369a1;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;color:#0c4a6e;text-align:center;min-width:130px;">
+              <div style="font-size:10px;color:#0369a1;margin-bottom:2px;">PASO 2</div>
+              Revisión CC y Envío a Riesgo
+            </div>
+          </div>
+        </div>
+
+        <!-- Decision: condiciones -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:6px;">
+          <div style="width:2px;height:14px;background:#94a3b8;"></div>
+          <div style="background:#fef3c7;border:2px solid #b45309;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;color:#92400e;text-align:center;">
+            ¿Cliente acepta condiciones comerciales?<br>
+            <span style="font-size:11px;font-weight:400;color:#b45309;">Si no acepta → módulo Pricing (requiere aprobación Zonal RM)</span>
+          </div>
+          <div style="width:2px;height:14px;background:#94a3b8;"></div>
+        </div>
+
+        <!-- RIESGO block -->
+        <div style="border:2px solid #7c3aed;border-radius:10px;background:#ede9fe;padding:16px;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;margin-bottom:12px;">🔍 Área de Riesgo</div>
+          <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+            <div style="background:#fff;border:2px solid #7c3aed;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;color:#3b0764;text-align:center;min-width:130px;">
+              <div style="font-size:10px;color:#7c3aed;margin-bottom:2px;">PASO 3</div>
+              Análisis de Riesgo del Cliente
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+              <div style="font-size:18px;color:#94a3b8;">→</div>
+            </div>
+            <div style="background:#fef3c7;border:2px solid #b45309;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;color:#92400e;text-align:center;min-width:120px;">
+              ¿Nivel de Comité?
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;justify-content:center;">
+              <div style="font-size:18px;color:#94a3b8;">→</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="background:#d1fae5;border:2px solid #10b981;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;color:#065f46;">
+                ✅ R4 — Dentro del Acta (flujo estándar)
+              </div>
+              <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;color:#92400e;">
+                ⚡ R2 — Hasta +20% del Acta
+              </div>
+              <div style="background:#fee2e2;border:2px solid #ef4444;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;color:#991b1b;">
+                🔴 D+K — Mayor a +20% del Acta
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Arrow down -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:6px;">
+          <div style="width:2px;height:14px;background:#94a3b8;"></div>
+        </div>
+
+        <!-- COMERCIAL continuación -->
+        <div style="border:2px solid #0369a1;border-radius:10px;background:#e0f2fe;padding:16px;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#0369a1;margin-bottom:12px;">💼 Área Comercial (continuación)</div>
+          <div style="background:#fff;border:2px solid #0369a1;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;color:#0c4a6e;display:inline-block;">
+            <div style="font-size:10px;color:#0369a1;margin-bottom:2px;">PASO 5</div>
+            Gestión Post-Análisis en Core 2
+          </div>
+        </div>
+
+        <!-- Decision VB -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:6px;">
+          <div style="width:2px;height:14px;background:#94a3b8;"></div>
+          <div style="background:#fef3c7;border:2px solid #b45309;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;color:#92400e;text-align:center;">
+            ¿Tiene VB Posterior?<br>
+            <span style="font-size:11px;font-weight:400;color:#b45309;">Sin VB → proceso de Ratificación por deudores</span>
+          </div>
+          <div style="width:2px;height:14px;background:#94a3b8;"></div>
+        </div>
+
+        <!-- RIESGO VB Posterior -->
+        <div style="border:2px solid #7c3aed;border-radius:10px;background:#ede9fe;padding:16px;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#7c3aed;margin-bottom:10px;">🔍 Área de Riesgo (continuación)</div>
+          <div style="background:#fff;border:2px solid #7c3aed;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;color:#3b0764;display:inline-block;">
+            <div style="font-size:10px;color:#7c3aed;margin-bottom:2px;">PASO 6</div>
+            Revisión Final y emisión de VB Posterior
+          </div>
+        </div>
+
+        <!-- Arrow down -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:6px;">
+          <div style="width:2px;height:14px;background:#94a3b8;"></div>
+        </div>
+
+        <!-- OPERACIONES block -->
+        <div style="border:2px solid #065f46;border-radius:10px;background:#d1fae5;padding:16px;margin-bottom:6px;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#065f46;margin-bottom:12px;">⚙️ Área de Operaciones</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div style="background:#fff;border:2px solid #065f46;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#022c22;text-align:center;min-width:120px;">
+              <div style="font-size:10px;color:#065f46;margin-bottom:2px;">PASO 7</div>
+              Verificación Cesión y Doc. Legal
+            </div>
+            <div style="font-size:18px;color:#94a3b8;">→</div>
+            <div style="background:#fff;border:2px solid #065f46;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#022c22;text-align:center;min-width:120px;">
+              <div style="font-size:10px;color:#065f46;margin-bottom:2px;">PASO 8</div>
+              Verificación Contratos y KYC
+            </div>
+            <div style="font-size:18px;color:#94a3b8;">→</div>
+            <div style="background:#fff;border:2px solid #065f46;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#022c22;text-align:center;min-width:120px;">
+              <div style="font-size:10px;color:#065f46;margin-bottom:2px;">PASO 9</div>
+              Verificación CC y Tasas
+            </div>
+            <div style="font-size:18px;color:#94a3b8;">→</div>
+            <div style="background:#fff;border:2px solid #065f46;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#022c22;text-align:center;min-width:120px;">
+              <div style="font-size:10px;color:#065f46;margin-bottom:2px;">PASO 10</div>
+              Simulación y Cierre
+            </div>
+          </div>
+        </div>
+
+        <!-- END -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin-top:6px;">
+          <div style="width:2px;height:18px;background:#94a3b8;"></div>
+          <div style="background:#059669;color:#fff;border-radius:24px;padding:8px 22px;font-size:13px;font-weight:700;">✅ Operación Cerrada</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Diagrama decisión comités -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:#f8fafc;">
+        <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:flex;align-items:center;gap:8px;">
+          <span style="width:4px;height:18px;background:var(--primary-light);border-radius:2px;display:inline-block;"></span>
+          Diagrama de Decisión — Niveles de Comité
+        </div>
+      </div>
+      <div style="padding:28px 24px;">
+        <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;">
+
+          <!-- Nodo inicio -->
+          <div style="background:#1e293b;color:#fff;border-radius:8px;padding:12px 18px;font-size:13px;font-weight:700;text-align:center;min-width:110px;">
+            Monto<br>a Financiar
+          </div>
+          <div style="font-size:24px;color:#94a3b8;margin:0 8px;">→</div>
+
+          <!-- Decisión 1 -->
+          <div style="background:#fef3c7;border:2px solid #b45309;border-radius:8px;padding:12px 16px;font-size:12px;font-weight:700;color:#92400e;text-align:center;min-width:130px;">
+            ¿Dentro del<br>límite del Acta?
+          </div>
+
+          <!-- Rama SÍ -->
+          <div style="display:flex;flex-direction:column;align-items:center;margin-left:12px;gap:4px;">
+            <div style="font-size:11px;font-weight:700;color:#10b981;">Sí ↓</div>
+            <div style="background:#d1fae5;border:2px solid #10b981;border-radius:8px;padding:12px 16px;font-size:12px;font-weight:700;color:#065f46;text-align:center;min-width:120px;">
+              ✅ Comité R4<br>
+              <span style="font-size:10px;font-weight:400;">Flujo estándar</span>
+            </div>
+          </div>
+
+          <!-- Flecha No -->
+          <div style="display:flex;flex-direction:column;align-items:center;margin:0 12px;gap:4px;">
+            <div style="font-size:11px;font-weight:700;color:#ef4444;">No →</div>
+          </div>
+
+          <!-- Decisión 2 -->
+          <div style="background:#fef3c7;border:2px solid #b45309;border-radius:8px;padding:12px 16px;font-size:12px;font-weight:700;color:#92400e;text-align:center;min-width:130px;">
+            ¿Excede hasta<br>un 20% del Acta?
+          </div>
+
+          <!-- Ramas comité R2 / D+K -->
+          <div style="display:flex;flex-direction:column;gap:10px;margin-left:12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;font-weight:700;color:#f59e0b;">Sí ↓</span>
+              <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;color:#92400e;text-align:center;min-width:120px;">
+                ⚡ Comité R2<br>
+                <span style="font-size:10px;font-weight:400;">Hasta +20%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;font-weight:700;color:#ef4444;">No ↓</span>
+              <div style="background:#fee2e2;border:2px solid #ef4444;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;color:#991b1b;text-align:center;min-width:120px;">
+                🔴 Comité D+K<br>
+                <span style="font-size:10px;font-weight:400;">Mayor a +20%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── 5. TABLA DEL PROCESO ── -->
+  <section id="sec-tabla" class="section-page">
+    <div class="card">
+      <div class="card-title">Tabla Detallada del Proceso</div>
+      <div style="overflow-x:auto;">
+        <table class="proc-table">
+          <thead>
+            <tr>
+              <th style="width:110px;">Paso</th>
+              <th style="width:200px;">Actividad</th>
+              <th>Tareas Principales</th>
+              <th style="width:150px;">Actor</th>
+              <th style="width:130px;">Sistema</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="step-tag">Paso 1</span></td>
+              <td><strong>Ingreso de la Operación</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Ingresar cliente y tipo de producto</li>
+                  <li>Configurar % y tipo de operación (normal u otra)</li>
+                  <li>Registrar valor de cuadratura e indicar garantía</li>
+                  <li>Ingresar tipo de pago y monto a financiar</li>
+                  <li>Subir facturas en PDF (o ingreso manual: RUT, monto, vigencia)</li>
+                  <li>Adjuntar documentos de respaldo del cliente</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-comercial">💼 Comercial</span></td>
+              <td>Core 2</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 2</span></td>
+              <td><strong>Revisión CC y Envío a Riesgo</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Revisar Condiciones Comerciales (CC) con tasa asignada</li>
+                  <li>Si cliente no acepta: abrir módulo Pricing e ingresar tasa alternativa</li>
+                  <li>Obtener aprobación del Zonal RM (Claudia Cortés) si aplica</li>
+                  <li>Presionar "Enviar a Aprobación" para remitir a Riesgo</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-comercial">💼 Comercial</span></td>
+              <td>Core 2 / Pricing</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 3</span></td>
+              <td><strong>Análisis de Riesgo del Cliente</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Verificar morosidad: vigencia, antigüedad y si fue pagada</li>
+                  <li>Revisar deuda en CMF, DICOM y alertas relevantes</li>
+                  <li>Verificar documentación adjunta y acta dentro del expediente</li>
+                  <li>Verificar cumplimiento tributario en TGR</li>
+                  <li>Analizar deudores: castigos, deuda y concentración versus acta</li>
+                  <li>Verificar que las facturas estén correctas</li>
+                  <li>Determinar nivel de comité: R4 / R2 / D+K</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-riesgo">🔍 Riesgo</span></td>
+              <td>Core 2 / CMF / DICOM / TGR</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 5</span></td>
+              <td><strong>Gestión Post-Análisis de Riesgo</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Agregar comentarios de VB para ratificación "Posterior"</li>
+                  <li>Enviar contrato al cliente y solicitar cesión de facturas</li>
+                  <li>Pasar el expediente a etapa de Curse</li>
+                  <li>Si no hay VB Posterior: llevar a Ratificación (confirmación de pago por deudor)</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-comercial">💼 Comercial</span></td>
+              <td>Core 2</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 6</span></td>
+              <td><strong>Revisión Final VB Posterior</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Revisar facturas, morosidad del cliente y del deudor</li>
+                  <li>Verificar que el monto esté dentro de la línea aprobada</li>
+                  <li>Revisar mitigantes comerciales (OC, estados de avance, etc.)</li>
+                  <li>Otorgar el VB Posterior</li>
+                  <li>Notificar al área de Ratificación</li>
+                  <li>Enviar datos de cesión al área correspondiente</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-riesgo">🔍 Riesgo</span></td>
+              <td>Core 2 / Fisban</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 7</span></td>
+              <td><strong>Verificación de Cesión y Documentación Legal</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Revisar fecha, cuenta, observaciones y estado de Ratificación</li>
+                  <li>Verificar estado del PROTOCOLO en SII (cesión)</li>
+                  <li>Revisar AVAL y acta del comité: confirmar RUT coincidente</li>
+                  <li>Revisar informe legal en Fisban: factura y mitigantes</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-operaciones">⚙️ Operaciones</span></td>
+              <td>SII / Fisban / Core 2</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 8</span></td>
+              <td><strong>Verificación de Contratos y KYC</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Verificar vigencia del KYC (formularios 84 y 85)</li>
+                  <li>Revisar que el Contrato de Factoring Nacional esté firmado</li>
+                  <li>Revisar contrato de cesión o carta guía: fecha del día y monto exacto coincidente con Fisban</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-operaciones">⚙️ Operaciones</span></td>
+              <td>Fisban / Core 2</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 9</span></td>
+              <td><strong>Verificación CC y Tasas</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Confirmar condiciones comerciales reflejadas en el acta</li>
+                  <li>Revisar la tasa en Core 2</li>
+                  <li>Registrar antecedentes y observaciones (mínimo 7 comentarios requeridos)</li>
+                  <li>Guardar el registro</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-operaciones">⚙️ Operaciones</span></td>
+              <td>Core 2</td>
+            </tr>
+            <tr>
+              <td><span class="step-tag">Paso 10</span></td>
+              <td><strong>Simulación y Cierre</strong></td>
+              <td>
+                <ul class="task-list-inline">
+                  <li>Enviar la operación a simulación en el sistema</li>
+                  <li>Confirmar que todos los datos y verificaciones previas estén completos</li>
+                  <li>Ejecutar el cierre de la operación</li>
+                </ul>
+              </td>
+              <td><span class="actor-badge actor-operaciones">⚙️ Operaciones</span></td>
+              <td>Core 2</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6. CASOS DE BORDE ── -->
+  <section id="sec-bordes" class="section-page">
+    <div class="card">
+      <div class="card-title">Casos de Borde</div>
+      <p>Situaciones que se desvían del flujo estándar y requieren manejo especial.</p>
+    </div>
+
+    <div class="edge-grid">
+      <div class="edge-card warning">
+        <div class="edge-title">⚠️ Cliente no acepta condiciones comerciales</div>
+        <p>El ejecutivo Comercial debe abrir el módulo de Pricing para proponer una tasa diferente. Esta tasa alternativa <strong>requiere aprobación obligatoria del Zonal RM (Claudia Cortés)</strong> antes de poder enviar el expediente a Riesgo. Sin esa aprobación, el proceso no puede avanzar.</p>
+      </div>
+
+      <div class="edge-card warning">
+        <div class="edge-title">⚠️ Monto entre 100% y 120% del Acta de Riesgo</div>
+        <p>La operación supera el límite del acta vigente pero no excede el 20% de margen. Se eleva automáticamente a <strong>Comité R2</strong> para su evaluación antes de continuar el flujo. Requiere más tiempo de análisis que el flujo estándar R4.</p>
+      </div>
+
+      <div class="edge-card danger">
+        <div class="edge-title">🔴 Monto mayor al 120% del Acta de Riesgo</div>
+        <p>La operación excede en más del 20% el límite del acta. Se eleva al <strong>Comité D+K</strong>, el nivel más alto de decisión. El proceso puede demorar significativamente y el riesgo de rechazo es mayor.</p>
+      </div>
+
+      <div class="edge-card warning">
+        <div class="edge-title">⚠️ Ausencia de VB Posterior</div>
+        <p>Si Riesgo no otorga el VB Posterior, el expediente no puede pasar directamente a etapa de Curse. Se debe llevar el caso a <strong>Ratificación</strong>: cada deudor debe confirmar explícitamente que pagará la factura cedida antes de financiar al cliente.</p>
+      </div>
+
+      <div class="edge-card info">
+        <div class="edge-title">📄 Cliente no sube facturas por el portal</div>
+        <p>El ejecutivo Comercial debe ingresar manualmente cada factura registrando: <strong>RUT del deudor, monto y vigencia</strong>. Este proceso manual puede aumentar el tiempo de registro y el riesgo de error en los datos.</p>
+      </div>
+
+      <div class="edge-card danger">
+        <div class="edge-title">🔴 Morosidad activa del cliente o deudor</div>
+        <p>Si durante el análisis de Riesgo se detecta morosidad vigente (cliente o deudor), el flujo se bloquea. Riesgo debe evaluar el historial completo: <strong>desde cuándo existe, si fue pagada y bajo qué condiciones</strong>. Puede derivar en rechazo de la operación.</p>
+      </div>
+
+      <div class="edge-card danger">
+        <div class="edge-title">🔴 RUT del AVAL no coincide con el Acta del Comité</div>
+        <p>Durante la verificación en Operaciones (Paso 7), si el RUT del AVAL no coincide con el acta del comité, la operación <strong>no puede avanzar a simulación</strong>. Se debe corregir la inconsistencia con el área correspondiente antes de continuar.</p>
+      </div>
+
+      <div class="edge-card warning">
+        <div class="edge-title">⚠️ KYC vencido (formularios 84 o 85)</div>
+        <p>Operaciones verifica la vigencia del KYC. Si los formularios 84 o 85 están vencidos, el proceso se detiene. El cliente debe renovar su KYC antes de que la operación pueda pasar a simulación y cierre.</p>
+      </div>
+
+      <div class="edge-card warning">
+        <div class="edge-title">⚠️ Menos de 7 comentarios en el sistema</div>
+        <p>Operaciones debe registrar un mínimo de <strong>7 comentarios</strong> con los antecedentes y observaciones de la operación antes de enviar a simulación. Si no se cumple este requisito, el sistema no permitirá avanzar al cierre.</p>
+      </div>
+
+      <div class="edge-card info">
+        <div class="edge-title">🔀 Riesgo y Ratificación en paralelo</div>
+        <p>El proceso de análisis de Riesgo y el proceso de Ratificación pueden ejecutarse <strong>de forma paralela o secuencial</strong> según las características del caso. Esto permite optimizar tiempos en operaciones con bajo riesgo o clientes con historial conocido.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. SUPUESTOS ── -->
+  <section id="sec-supuestos" class="section-page">
+    <div class="card">
+      <div class="card-title">Supuestos Considerados</div>
+      <p>Condiciones dadas por válidas al momento de describir el flujo funcional. Deben ser validadas con las áreas responsables.</p>
+    </div>
+
+    <div class="assumption-grid">
+      <div class="assumption-item">
+        <div class="a-icon">🖥️</div>
+        <div>
+          <div class="a-text">El sistema Core 2 se encuentra operativo y disponible para el ingreso y seguimiento de operaciones de factoring en todas sus etapas.</div>
+          <div class="a-area">Sistema / Tecnología</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">📄</div>
+        <div>
+          <div class="a-text">El cliente tiene acceso al portal para subir facturas en formato PDF. En caso contrario, se asume que el ejecutivo Comercial cuenta con los datos necesarios (RUT, monto, vigencia) para el ingreso manual.</div>
+          <div class="a-area">Área Comercial</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">📋</div>
+        <div>
+          <div class="a-text">Existe un Acta de Riesgo vigente y formalizada para el cliente que determina los límites de financiamiento. Sin este documento, no es posible determinar el nivel de comité.</div>
+          <div class="a-area">Área de Riesgo</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">✅</div>
+        <div>
+          <div class="a-text">Los formularios KYC (84 y 85) del cliente han sido recopilados previamente y se encuentran dentro de su período de vigencia al momento de operar.</div>
+          <div class="a-area">Área de Operaciones</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">📝</div>
+        <div>
+          <div class="a-text">El Contrato de Factoring Nacional se encuentra debidamente firmado por el cliente antes del inicio del proceso operativo.</div>
+          <div class="a-area">Área de Operaciones / Legal</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">🏦</div>
+        <div>
+          <div class="a-text">El sistema Fisban se encuentra integrado con Core 2 y disponible para la consulta del informe legal (facturas y mitigantes) durante la verificación realizada por Operaciones.</div>
+          <div class="a-area">Sistema / Tecnología</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">🔗</div>
+        <div>
+          <div class="a-text">El SII (Servicio de Impuestos Internos) está disponible para verificar el estado del PROTOCOLO de cesión de facturas en tiempo real.</div>
+          <div class="a-area">Sistema / Regulatorio</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">👤</div>
+        <div>
+          <div class="a-text">El Zonal RM (Claudia Cortés) está disponible para aprobar tasas alternativas en el módulo de Pricing cuando el cliente solicite condiciones comerciales distintas a las generadas por el sistema.</div>
+          <div class="a-area">Área Comercial</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">💰</div>
+        <div>
+          <div class="a-text">Los mitigantes comerciales (órdenes de compra, estados de avance, etc.) que respaldan la operación entre el cliente y el deudor son verificables y se encuentran disponibles al momento del análisis.</div>
+          <div class="a-area">Área de Riesgo</div>
+        </div>
+      </div>
+      <div class="assumption-item">
+        <div class="a-icon">📅</div>
+        <div>
+          <div class="a-text">El contrato de cesión o carta guía es emitido y firmado el mismo día de la operación, y el monto consignado coincide exactamente con el registrado en Fisban.</div>
+          <div class="a-area">Área de Operaciones / Legal</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  const titles = {
+    'objetivo':      'Objetivo Principal',
+    'objetivos-esp': 'Objetivos Específicos',
+    'historia':      'Historias de Usuario',
+    'diagrama':      'Diagrama de Proceso',
+    'tabla':         'Tabla del Proceso',
+    'bordes':        'Casos de Borde',
+    'supuestos':     'Supuestos'
+  };
+
+  function showSection(id, el) {
+    document.querySelectorAll('.section-page').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('active');
+    el.classList.add('active');
+    document.getElementById('topbar-title').textContent = titles[id];
+  }
+
+</script>
+</body>
+</html>
